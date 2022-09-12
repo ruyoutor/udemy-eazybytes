@@ -1,0 +1,16 @@
+spring:
+  security:
+    user:
+      name: eazybytes
+      password: 12345
+  datasource:
+    url: jdbc:mysql://localhost:3306/eazybank
+    username: root
+    password: root
+logging:
+  level:
+    org:
+      springframework:
+        security:
+          web:
+            FilterChainProxy: DEBUG
