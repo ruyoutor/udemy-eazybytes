@@ -1,16 +1,14 @@
 package com.eazybytes.config;
 
-import com.eazybytes.filter.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,27 +32,24 @@ public class ProjectSecurityConfig {
 
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().cors().configurationSource(this::getCorsConfiguration)
-                .and().csrf().disable()
-                .addFilterBefore(new RequestValidationBeforeFilter(), BasicAuthenticationFilter.class)
-                .addFilterBefore(new JWTTokenValidatorFilter(), BasicAuthenticationFilter.class)
-                .addFilterAfter(new JWTTokenGeneratorFilter(), BasicAuthenticationFilter.class)
-                .addFilterAfter(new AuthoritiesLoggingAfterFilter(), BasicAuthenticationFilter.class)
-                .addFilterAt(new AuthoritiesLoggingAtFilter(), BasicAuthenticationFilter.class)
-                .authorizeRequests(auth -> auth
-                    .antMatchers("/myAccount").hasRole("USER")
-                .antMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
-                .antMatchers("/myLoans").authenticated()
-                .antMatchers("/myCards").hasAnyRole("USER", "ADMIN")
-                .antMatchers("/user").authenticated()
-                .antMatchers("/notices").permitAll()
-                .antMatchers("/contact").permitAll()).httpBasic(Customizer.withDefaults());
+                .and().authorizeRequests(auth -> auth
+                        .antMatchers("/myAccount").hasRole("USER")
+                        .antMatchers("/myBalance").hasAnyRole("USER", "ADMIN")
+                        .antMatchers("/myLoans").authenticated()
+                        .antMatchers("/myCards").hasAnyRole("USER", "ADMIN")
+                        .antMatchers("/user").authenticated()
+                        .antMatchers("/notices").permitAll()
+                        .antMatchers("/contact").permitAll())
+                .csrf().disable()
+                .oauth2ResourceServer().jwt().jwtAuthenticationConverter(getJwtAuthenticationConverter());
         return http.build();
     }
 
-//    @Bean
-//    public UserDetailsService userDetailsService(DataSource dataSource){
-//        return new JdbcUserDetailsManager(dataSource);
-//    }
+    private JwtAuthenticationConverter getJwtAuthenticationConverter() {
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
+        return jwtAuthenticationConverter;
+    }
 
     /**
      * NoOpPasswordEncoder is not recommended for production usage.
